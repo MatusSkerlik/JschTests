@@ -11,8 +11,6 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.regex.Pattern;
-
 /**
  * This class represents a JUnit test that tests the behavior of an SSH client when the server sends an SSH_MSG_CHANNEL_CLOSE message to close the shell channel.
  * <p>
@@ -36,13 +34,14 @@ public class ChannelCloseTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
+                    .withFileFromClasspath("server.py", "docker/common/server.py")
                     .withFileFromClasspath("main.py", "docker/channel_close_server/main.py")
                     .withFileFromClasspath("Dockerfile", "docker/channel_close_server/Dockerfile")
     ).withExposedPorts(22);
-    private static final String USERNAME = "username";
-    private static final String PASSWORD = "password";
-    private static final Pattern LOG_PATTERN = Pattern.compile("(?i).+exception.+leaving main loop.+socket.+closed");
-    private static Session session;
+
+    private static final String  USERNAME = "username";
+    private static final String  PASSWORD = "password";
+    private static       Session session;
 
     @BeforeAll
     static void beforeAll() throws JSchException {

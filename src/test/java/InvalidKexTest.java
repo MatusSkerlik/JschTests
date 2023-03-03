@@ -39,13 +39,15 @@ public class InvalidKexTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
+                    .withFileFromClasspath("server.py", "docker/common/server.py")
                     .withFileFromClasspath("main.py", "docker/invalid_kex_server/main.py")
                     .withFileFromClasspath("Dockerfile", "docker/invalid_kex_server/Dockerfile")
     ).withExposedPorts(22);
-    private static final String USERNAME = "username";
-    private static final String PASSWORD = "password";
+
+    private static final String  USERNAME    = "username";
+    private static final String  PASSWORD    = "password";
     private static final Pattern LOG_PATTERN = Pattern.compile("(?i).+exception.+leaving main loop.+kex");
-    private static Session session;
+    private static       Session session;
 
     @BeforeAll
     static void beforeAll() throws JSchException {

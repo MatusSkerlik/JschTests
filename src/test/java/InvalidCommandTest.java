@@ -40,6 +40,7 @@ public class InvalidCommandTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
+                    .withFileFromClasspath("server.py", "docker/common/server.py")
                     .withFileFromClasspath("main.py", "docker/invalid_command_server/main.py")
                     .withFileFromClasspath("Dockerfile", "docker/invalid_command_server/Dockerfile")
     ).withExposedPorts(22);
