@@ -13,6 +13,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.regex.Pattern;
 
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 /**
  * This class represents a client that connects to an SSH server and reacts to an invalid message type with a code
  * of 101 by disconnecting from the server.
@@ -35,19 +38,22 @@ import java.util.regex.Pattern;
  * </p>
  */
 @Testcontainers
-public class InvalidCommandTest extends AbstractJschDockerTest {
+public class ServerInvalidCommandTest extends AbstractJschDockerTest {
+
+    private static final int PORT = getPort();
 
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
                     .withFileFromClasspath("server.py", "docker/common/server.py")
-                    .withFileFromClasspath("main.py", "docker/invalid_command_server/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/invalid_command_server/Dockerfile")
-    ).withExposedPorts(22);
-    private static final String USERNAME = "username";
-    private static final String PASSWORD = "password";
+                    .withFileFromClasspath("main.py", "docker/server_invalid_command_test/main.py")
+                    .withFileFromClasspath("Dockerfile", "docker/server_invalid_command_test/Dockerfile")
+    ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
+
+    private static final String  USERNAME    = "username";
+    private static final String  PASSWORD    = "password";
     private static final Pattern LOG_PATTERN = Pattern.compile("(?i).+exception.+leaving main loop.+unknown.+message.+type");
-    private static Session session;
+    private static       Session session;
 
     @BeforeAll
     static void beforeAll() throws JSchException {
@@ -64,8 +70,10 @@ public class InvalidCommandTest extends AbstractJschDockerTest {
     @Test
     @DisplayName("Jsch session close after invalid message from server")
     void test_0() throws JSchException, InterruptedException {
-        session.connect();
-        ChannelShell shell = (ChannelShell) session.openChannel("shell");
+        Session sessionSpy = spy(session);
+
+        sessionSpy.connect();
+        ChannelShell shell = (ChannelShell) sessionSpy.openChannel("shell");
         shell.connect();
 
         Thread.sleep(1000);
@@ -82,5 +90,7 @@ public class InvalidCommandTest extends AbstractJschDockerTest {
         }
 
         Assertions.assertTrue(jschMessageTypeErrorFound, "Jsch did not end with unknown message type as predicted");
+        // verify that disconnect was also called
+        verify(sessionSpy).disconnect();
     }
 }

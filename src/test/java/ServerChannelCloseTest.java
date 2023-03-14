@@ -11,6 +11,9 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 /**
  * This class represents a JUnit test that tests the behavior of an SSH client when the server sends an SSH_MSG_CHANNEL_CLOSE message to close the shell channel.
  * <p>
@@ -29,15 +32,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * </p>
  */
 @Testcontainers
-public class ChannelCloseTest extends AbstractJschDockerTest {
+public class ServerChannelCloseTest extends AbstractJschDockerTest {
+
+    private static final int PORT = getPort();
 
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
                     .withFileFromClasspath("server.py", "docker/common/server.py")
-                    .withFileFromClasspath("main.py", "docker/channel_close_server/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/channel_close_server/Dockerfile")
-    ).withExposedPorts(22);
+                    .withFileFromClasspath("main.py", "docker/server_channel_close_test/main.py")
+                    .withFileFromClasspath("Dockerfile", "docker/server_channel_close_test/Dockerfile")
+    ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final String  USERNAME = "username";
     private static final String  PASSWORD = "password";
@@ -56,15 +61,19 @@ public class ChannelCloseTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Jsch session close after invalid message from server")
+    @DisplayName("Jsch channel close by server")
     void test_0() throws JSchException, InterruptedException {
-        session.connect();
-        ChannelShell shell = (ChannelShell) session.openChannel("shell");
+        Session sessionSpy = spy(session);
+
+        sessionSpy.connect();
+        ChannelShell shell = (ChannelShell) sessionSpy.openChannel("shell");
         shell.connect();
 
         Thread.sleep(1000);
 
         Assertions.assertFalse(shell.isConnected());
         Assertions.assertTrue(shell.isClosed());
+        // verify that disconnect was also called
+        verify(sessionSpy).disconnect();
     }
 }

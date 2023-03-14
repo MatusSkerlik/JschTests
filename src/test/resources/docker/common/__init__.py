@@ -1,1 +1,1 @@
-from server import SSHServer
+from .server import SSHServer

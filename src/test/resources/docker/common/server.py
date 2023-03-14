@@ -2,11 +2,13 @@ import socket
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Union
 
 import paramiko
 from paramiko.channel import Channel
 from paramiko.common import OPEN_SUCCEEDED, OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED, AUTH_SUCCESSFUL
+from paramiko.message import Message
+from paramiko.transport import Transport
 
 
 class SSHServer(paramiko.ServerInterface, ABC):
@@ -19,16 +21,15 @@ class SSHServer(paramiko.ServerInterface, ABC):
         sock (socket.socket): The server socket used to listen for incoming client connections.
         server (paramiko.Transport): The Paramiko Transport object used to manage the SSH server.
         channels (list): A list of Paramiko Channel objects created by the server.
-        event (threading.Event): An Event object used to signal the server to stop accepting new connections and exit.
     """
 
     def __init__(self, hostname, port):
         self.hostname = hostname
         self.port = port
-        self.sock = None
-        self.server = None
+        self.sock: socket = None
+        self.server: Union[Transport, None] = None
         self.channels: List[Channel] = []
-        self.event = threading.Event()
+        self.message_event = threading.Event()
 
     def start(self):
         # Create a new socket and bind it to the specified hostname and port
@@ -54,7 +55,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
             exit(1)
 
     @abstractmethod
-    def get_message(self):
+    def get_message(self) -> Message:
         """
         This is an abstract method that should return a message to be sent to the client. It must be implemented by
         subclasses.
@@ -66,6 +67,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
 
     def send_message(self):
         try:
+            self.message_event.wait()
             self.server.packetizer.send_message(self.get_message())
         except Exception as e:
             print(f"Failed to send SSH message: {e}")
@@ -74,7 +76,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
             self.server.close()
             exit(1)
 
-    def wait_for_close(self, timeout=20):
+    def wait_for_close(self, timeout=30):
         # Loop for the specified timeout, sleeping for 20 ms in each iteration
         start_time = time.time()
         while time.time() < start_time + timeout:
@@ -87,8 +89,11 @@ class SSHServer(paramiko.ServerInterface, ABC):
             else:
                 continue
 
-        for channel in self.channels:
-            channel.close()
+        # for channel in self.channels:
+        #    channel.close()
+        # self.server.close()
+
+    def close(self):
         self.server.close()
 
     def check_channel_request(self, kind, *args):
@@ -104,9 +109,11 @@ class SSHServer(paramiko.ServerInterface, ABC):
     def check_channel_shell_request(self, channel):
         # Append the new channel to the list of channels
         self.channels.append(channel)
+        self.message_event.set()
         return True
 
     def check_channel_pty_request(self, channel, *args):
         # Append the new channel to the list of channels
         self.channels.append(channel)
+        self.message_event.set()
         return True

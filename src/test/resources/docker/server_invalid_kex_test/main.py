@@ -1,10 +1,16 @@
 import os
 import sys
-import time
 
 from paramiko.message import Message
 
-from server import SSHServer
+try:
+    from server import SSHServer
+
+    PORT = int(os.getenv("PORT"))
+except ImportError:
+    from common import SSHServer
+
+    PORT = 2222
 
 
 class InvalidKexInitMessageServer(SSHServer):
@@ -39,13 +45,13 @@ class InvalidKexInitMessageServer(SSHServer):
 
 
 # Create an instance of the SSH server
-ssh_server = InvalidKexInitMessageServer('', 22)
+print(f"Starting server with (localhost, {PORT})")
+ssh_server = InvalidKexInitMessageServer('', PORT)
 
 # Start the server and wait for a client to connect and authenticate
 ssh_server.start()
 
 # Send a corrupted SSH message with code 101
-time.sleep(0.5)
 ssh_server.send_message()
 
 # Wait for the client to close

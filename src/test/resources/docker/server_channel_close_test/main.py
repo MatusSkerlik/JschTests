@@ -1,9 +1,16 @@
+import os
 import sys
-import time
 
 from paramiko.message import Message
 
-from server import SSHServer
+try:
+    from server import SSHServer
+
+    PORT = int(os.getenv("PORT"))
+except ImportError:
+    from common import SSHServer
+
+    PORT = 2222
 
 
 class CloseChannelServer(SSHServer):
@@ -24,19 +31,19 @@ class CloseChannelServer(SSHServer):
 
         m = Message()
         m.add_byte(int(97).to_bytes(1, sys.byteorder))  # SSH_MSG_CHANNEL_CLOSE
-        m.add_int(channel.get_id())
+        m.add_int(channel.remote_chanid)
 
         return m
 
 
 # Create an instance of the SSH server
+print(f"Starting server with (localhost, {PORT})")
 ssh_server = CloseChannelServer('', 22)
 
 # Start the server and wait for a client to connect and authenticate
 ssh_server.start()
 
 # Send a corrupted SSH message with code 101
-time.sleep(0.5)
 ssh_server.send_message()
 
 # Wait for the client to close
