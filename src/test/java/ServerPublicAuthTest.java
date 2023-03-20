@@ -24,21 +24,23 @@ import static org.mockito.Mockito.spy;
 @Testcontainers
 public class ServerPublicAuthTest extends AbstractJschDockerTest {
 
-    private static final int                 PORT             = getPort();
+    private static final int PORT = getPort();
+
     @Container
-    public static final  GenericContainer<?> sshd             = new GenericContainer<>(
+    public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
                     .withFileFromClasspath("server.py", "docker/server.py")
                     .withFileFromClasspath("main.py", "docker/server_public_auth_test/main.py")
                     .withFileFromClasspath("key.rsa", "docker/server_public_auth_test/key.rsa")
                     .withFileFromClasspath("Dockerfile", "docker/server_public_auth_test/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
-    private static final Pattern             PRE_AUTH_PATTERN = Pattern.compile("rsa-sha2-(?:256|512) preauth success");
-    private static final Pattern             AUTH_PATTERN     = Pattern.compile("rsa-sha2-(?:256|512) auth (?:success|failure)");
-    private static final Pattern             AUTH_FAILURE     = Pattern.compile("rsa-sha2-(?:256|512) auth failure");
-    private static final String              USERNAME         = "username";
-    private static final String              PRIVATE_KEY;
-    private static       Session             session;
+
+    private static final Pattern PRE_AUTH_PATTERN = Pattern.compile("rsa-sha2-(?:256|512) preauth success");
+    private static final Pattern AUTH_PATTERN     = Pattern.compile("rsa-sha2-(?:256|512) auth (?:success|failure)");
+    private static final Pattern AUTH_FAILURE     = Pattern.compile("rsa-sha2-(?:256|512) auth failure");
+    private static final String  USERNAME         = "username";
+    private static final String  PRIVATE_KEY;
+    private static       Session session;
 
     static {
         ClassLoader classLoader = ServerPublicAuthTest.class.getClassLoader();
