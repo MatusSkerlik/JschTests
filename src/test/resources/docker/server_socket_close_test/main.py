@@ -1,6 +1,5 @@
 import os
 import socket
-import time
 
 PORT = int(os.getenv("PORT"))
 if PORT is None:

@@ -3,14 +3,9 @@ import sys
 
 from paramiko.message import Message
 
-try:
-    from server import SSHServer
+from server import SSHServer
 
-    PORT = int(os.getenv("PORT"))
-except ImportError:
-    from common import SSHServer
-
-    PORT = 2222
+PORT = int(os.getenv("PORT"))
 
 
 class CloseChannelServer(SSHServer):

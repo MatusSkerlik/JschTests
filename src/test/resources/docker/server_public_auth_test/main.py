@@ -7,32 +7,31 @@ from paramiko.message import Message
 from paramiko.pkey import PKey
 from paramiko.rsakey import RSAKey
 
-try:
-    from server import SSHServer
+from server import SSHServer
 
-    PORT = int(os.getenv("PORT"))
-except ImportError:
-    from common import SSHServer
-
-    PORT = 2222
+PORT = int(os.getenv("PORT"))
 
 
 class PublicAuthServer(SSHServer):
     """
-    A concrete implementation of the `SSHServer` abstract class that returns an SSH message with type 20 (MSG_KEXINIT)
-    when the `get_message` method is called.
-    """
+    A custom SSH server that allows public key authentication based on a simple condition.
 
+    The server allows public key authentication for a user if the server's internal counter
+    (self.i) is divisible by 2 or 3 (True, False, True, True ...).
+    The counter increments with each authentication attempt.
+
+    Attributes:
+        hostname (str): The hostname to bind the server to.
+        port (int): The port number to bind the server to.
+    """
     def __init__(self, hostname, port):
         super().__init__(hostname, port)
         self.i = 0
 
     def get_allowed_auths(self, username: str) -> str:
-        print("get_allowed_auths")
         return "publickey"
 
     def check_auth_publickey(self, username: str, key: PKey) -> int:
-        print("check_auth_publickey")
         try:
             return AUTH_SUCCESSFUL if (self.i % 2 == 0 or self.i % 3 == 0) else AUTH_FAILED
         finally:

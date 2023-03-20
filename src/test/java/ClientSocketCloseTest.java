@@ -24,7 +24,7 @@ public class ClientSocketCloseTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/common/server.py")
+                    .withFileFromClasspath("server.py", "docker/server.py")
                     .withFileFromClasspath("main.py", "docker/client_socket_close_test/main.py")
                     .withFileFromClasspath("Dockerfile", "docker/client_socket_close_test/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));

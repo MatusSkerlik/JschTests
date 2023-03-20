@@ -17,6 +17,10 @@ import java.util.regex.Pattern;
 
 import static org.mockito.Mockito.spy;
 
+/**
+ * This test class verifies the behavior of an SSH server that allows public key authentication based on a simple condition.
+ * The server allows public key authentication for a user if its internal counter (i) is divisible by 2 or 3.
+ */
 @Testcontainers
 public class ServerPublicAuthTest extends AbstractJschDockerTest {
 
@@ -24,7 +28,7 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
     @Container
     public static final  GenericContainer<?> sshd             = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/common/server.py")
+                    .withFileFromClasspath("server.py", "docker/server.py")
                     .withFileFromClasspath("main.py", "docker/server_public_auth_test/main.py")
                     .withFileFromClasspath("key.rsa", "docker/server_public_auth_test/key.rsa")
                     .withFileFromClasspath("Dockerfile", "docker/server_public_auth_test/Dockerfile")
@@ -73,7 +77,7 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Try to simulate public key pre-auth and auth logic")
+    @DisplayName("Test try_additional_pubkey_algorithms option for public-key auth")
     void test_0() throws JSchException {
         Session sessionSpy = spy(session);
         sessionSpy.connect();

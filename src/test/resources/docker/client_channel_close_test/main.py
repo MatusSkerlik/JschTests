@@ -1,14 +1,9 @@
 import os
 import time
 
-try:
-    from server import SSHServer
+from server import SSHServer
 
-    PORT = int(os.getenv("PORT"))
-except ImportError:
-    from common import SSHServer
-
-    PORT = 2222
+PORT = int(os.getenv("PORT"))
 
 
 class SSHServerWithMessage(SSHServer):
