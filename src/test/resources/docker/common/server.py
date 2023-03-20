@@ -31,31 +31,38 @@ class SSHServer(paramiko.ServerInterface, ABC):
         self.channels: List[Channel] = []
         self.message_event = threading.Event()
 
-    def start(self):
+    def start(self, host_key=paramiko.RSAKey.generate(2048)):
         # Create a new socket and bind it to the specified hostname and port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.hostname, self.port))
-        self.sock.listen(100)
+        self.sock.listen()
 
         # Create a new SSH server and set the server key
         try:
-            self.server = paramiko.Transport(self.sock.accept()[0])
-            self.server.add_server_key(paramiko.RSAKey.generate(2048))
+            self.server = SSHServer.get_transport(self.sock)
+            self.server.add_server_key(host_key)
         except Exception as e:
             print(f"Failed to create server: {e}")
             exit(1)
 
         # Start the SSH server and wait for incoming client connections
         try:
-            self.server.start_server(server=self)
+            print("Before server start")
+            self.server.start_server(server=self, event=None)
+            print("Server start successful")
         except Exception as e:
             print(f"Failed to start server: {e}")
             self.server.close()
             exit(1)
 
+    @staticmethod
+    def get_transport(server_socket: socket.socket) -> Transport:
+        client_socket, _client_ip = server_socket.accept()
+        return Transport(client_socket)
+
     @abstractmethod
-    def get_message(self) -> Message:
+    def get_message(self) -> Union[None, Message]:
         """
         This is an abstract method that should return a message to be sent to the client. It must be implemented by
         subclasses.
@@ -68,7 +75,9 @@ class SSHServer(paramiko.ServerInterface, ABC):
     def send_message(self):
         try:
             self.message_event.wait()
-            self.server.packetizer.send_message(self.get_message())
+            msg = self.get_message()
+            if msg is not None:
+                self.server.packetizer.send_message(msg)
         except Exception as e:
             print(f"Failed to send SSH message: {e}")
             for channel in self.channels:
