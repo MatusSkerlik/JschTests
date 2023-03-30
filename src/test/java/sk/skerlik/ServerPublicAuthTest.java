@@ -1,3 +1,5 @@
+package sk.skerlik;
+
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import org.junit.jupiter.api.AfterAll;
@@ -68,15 +70,6 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
         session.disconnect();
     }
 
-    private static int getMessageCount(Pattern pattern) {
-        int preAuthMessageCount = 0;
-        for (String log : jSchLogs) {
-            if (pattern.matcher(log).find()) {
-                preAuthMessageCount++;
-            }
-        }
-        return preAuthMessageCount;
-    }
 
     @Test
     @DisplayName("Test try_additional_pubkey_algorithms option for public-key auth")
@@ -84,14 +77,14 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
         Session sessionSpy = spy(session);
         sessionSpy.connect();
 
-        //[main] INFO AbstractJschDockerTest - Next authentication method: publickey
-        //[main] INFO AbstractJschDockerTest - PubkeyAcceptedAlgorithms = ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,rsa-sha2-512,rsa-sha2-256
-        //[main] INFO AbstractJschDockerTest - PubkeyAcceptedAlgorithms in server-sig-algs = [ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256]
-        //[main] INFO AbstractJschDockerTest - rsa-sha2-512 preauth success
-        //[main] INFO AbstractJschDockerTest - rsa-sha2-512 auth failure
-        //[main] INFO AbstractJschDockerTest - rsa-sha2-256 preauth success
-        //[main] INFO AbstractJschDockerTest - rsa-sha2-256 auth success
-        //[main] INFO AbstractJschDockerTest - Authentication succeeded (publickey).
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - Next authentication method: publickey
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - PubkeyAcceptedAlgorithms = ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,rsa-sha2-512,rsa-sha2-256
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - PubkeyAcceptedAlgorithms in server-sig-algs = [ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256]
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - rsa-sha2-512 preauth success
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - rsa-sha2-512 auth failure
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - rsa-sha2-256 preauth success
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - rsa-sha2-256 auth success
+        //[main] INFO sk.skerlik.AbstractJschDockerTest - Authentication succeeded (publickey).
 
         int preAuthMessageCount = getMessageCount(PRE_AUTH_PATTERN);
         Assertions.assertEquals(2, preAuthMessageCount, "There should be two pre-auth messages");

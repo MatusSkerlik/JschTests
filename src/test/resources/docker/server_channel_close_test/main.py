@@ -5,7 +5,7 @@ from paramiko.message import Message
 
 from server import SSHServer
 
-PORT = int(os.getenv("PORT"))
+PORT = int(os.getenv("PORT") or 8080)
 
 
 class CloseChannelServer(SSHServer):

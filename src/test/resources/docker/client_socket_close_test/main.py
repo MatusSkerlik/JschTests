@@ -3,7 +3,7 @@ import time
 
 from server import SSHServer
 
-PORT = int(os.getenv("PORT"))
+PORT = int(os.getenv("PORT") or 8080)
 
 
 class SSHServerWithMessage(SSHServer):

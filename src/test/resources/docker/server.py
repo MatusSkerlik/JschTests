@@ -1,3 +1,4 @@
+import logging
 import socket
 import threading
 import time
@@ -10,6 +11,11 @@ from paramiko.common import OPEN_SUCCEEDED, OPEN_FAILED_ADMINISTRATIVELY_PROHIBI
 from paramiko.message import Message
 from paramiko.transport import Transport
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+paramiko_logger = logging.getLogger("paramiko")
+paramiko_logger.setLevel(logging.DEBUG)
+
 
 class SSHServer(paramiko.ServerInterface, ABC):
     """
@@ -19,7 +25,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
         hostname (str): The hostname or IP address of the server.
         port (int): The port number on which the server listens for incoming client connections.
         sock (socket.socket): The server socket used to listen for incoming client connections.
-        server (paramiko.Transport): The Paramiko Transport object used to manage the SSH server.
+        transport (paramiko.Transport): The Paramiko Transport object used to manage the SSH server.
         channels (list): A list of Paramiko Channel objects created by the server.
     """
 
@@ -27,7 +33,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
         self.hostname = hostname
         self.port = port
         self.sock: socket = None
-        self.server: Union[Transport, None] = None
+        self.transport: Union[Transport, None] = None
         self.channels: List[Channel] = []
         self.message_event = threading.Event()
 
@@ -40,8 +46,8 @@ class SSHServer(paramiko.ServerInterface, ABC):
 
         # Create a new SSH server and set the server key
         try:
-            self.server = SSHServer.get_transport(self.sock)
-            self.server.add_server_key(host_key)
+            self.transport = self.get_transport(self.sock)
+            self.transport.add_server_key(host_key)
         except Exception as e:
             print(f"Failed to create server: {e}")
             exit(1)
@@ -49,15 +55,14 @@ class SSHServer(paramiko.ServerInterface, ABC):
         # Start the SSH server and wait for incoming client connections
         try:
             print("Before server start")
-            self.server.start_server(server=self, event=None)
+            self.transport.start_server(server=self, event=None)
             print("Server start successful")
         except Exception as e:
             print(f"Failed to start server: {e}")
-            self.server.close()
+            self.transport.close()
             exit(1)
 
-    @staticmethod
-    def get_transport(server_socket: socket.socket) -> Transport:
+    def get_transport(self, server_socket: socket.socket) -> Transport:
         client_socket, _client_ip = server_socket.accept()
         return Transport(client_socket)
 
@@ -77,12 +82,12 @@ class SSHServer(paramiko.ServerInterface, ABC):
             self.message_event.wait()
             msg = self.get_message()
             if msg is not None:
-                self.server.packetizer.send_message(msg)
+                self.transport.packetizer.send_message(msg)
         except Exception as e:
             print(f"Failed to send SSH message: {e}")
             for channel in self.channels:
                 channel.close()
-            self.server.close()
+            self.transport.close()
             exit(1)
 
     def wait_for_close(self, timeout=30):
@@ -103,7 +108,7 @@ class SSHServer(paramiko.ServerInterface, ABC):
         # self.server.close()
 
     def close(self):
-        self.server.close()
+        self.transport.close()
 
     def check_channel_request(self, kind, *args):
         # Only allow opening a session shell channel

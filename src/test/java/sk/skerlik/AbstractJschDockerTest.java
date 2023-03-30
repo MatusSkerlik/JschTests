@@ -1,3 +1,5 @@
+package sk.skerlik;
+
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Logger;
 import lombok.extern.slf4j.Slf4j;
@@ -6,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class AbstractJschDockerTest {
@@ -15,6 +18,16 @@ public class AbstractJschDockerTest {
 
     public static int getPort() {
         return 22;
+    }
+
+    public static int getMessageCount(Pattern pattern) {
+        int preAuthMessageCount = 0;
+        for (String log : jSchLogs) {
+            if (pattern.matcher(log).find()) {
+                preAuthMessageCount++;
+            }
+        }
+        return preAuthMessageCount;
     }
 
     @BeforeAll

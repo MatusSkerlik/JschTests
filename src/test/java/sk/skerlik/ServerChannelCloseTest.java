@@ -1,3 +1,5 @@
+package sk.skerlik;
+
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
