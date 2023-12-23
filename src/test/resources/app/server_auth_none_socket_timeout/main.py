@@ -1,14 +1,11 @@
 import os
 import socket
-import time
-from typing import Union
 
-import paramiko.common
 from paramiko.auth_handler import AuthHandler
-from paramiko.message import Message
 from paramiko.transport import Transport
+from paramiko.common import AUTH_SUCCESSFUL, AUTH_FAILED, OPEN_SUCCEEDED
 
-from server import SSHServer
+from app.server import SSHServer
 
 PORT = int(os.getenv("PORT") or 8080)
 
@@ -44,29 +41,25 @@ class TimeoutNoneAcceptPasswordServer(SSHServer):
     """
 
     def check_auth_none(self, username: str) -> int:
-        return paramiko.common.AUTH_FAILED
+        return AUTH_FAILED
 
     def check_auth_password(self, *args) -> int:
-        return paramiko.common.AUTH_SUCCESSFUL
+        return AUTH_SUCCESSFUL
 
     def check_channel_request(self, *args):
-        return paramiko.OPEN_SUCCEEDED
+        return OPEN_SUCCEEDED
 
     def get_transport(self, server_socket: socket.socket) -> Transport:
         client_socket, _client_ip = server_socket.accept()
         return MyTransport(client_socket)
-
-    def get_message(self) -> Union[None, Message]:
-        return None
 
 
 print(f"Starting server with (localhost, {PORT})")
 # Create an instance of the SSH server
 ssh_server = TimeoutNoneAcceptPasswordServer('', PORT)
 
-# Start the server and wait for a client to connect and authenticate
+# Start the server and wait for a client to connect and negotiate encryption
 ssh_server.start()
 
-# Wait for the client to close
-while True:
-    time.sleep(0.002)
+# Wait until transport layer finishes
+ssh_server.join()

@@ -1,5 +1,6 @@
 import os
 import socket
+import time
 
 PORT = int(os.getenv("PORT"))
 if PORT is None:
@@ -18,3 +19,5 @@ print(f"Accepted {client}:{port}")
 client.send("SSH-2.0-FOO_0.0.1\r\n".encode())
 client.close()
 
+while True:
+    time.sleep(1)

@@ -3,17 +3,11 @@ package sk.skerlik;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.util.regex.Pattern;
 
 @Testcontainers
 public class ServerNoneAuthTimeoutException extends AbstractJschDockerTest {
@@ -23,14 +17,13 @@ public class ServerNoneAuthTimeoutException extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/server.py")
-                    .withFileFromClasspath("main.py", "docker/server_auth_none_socket_timeout/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/server_auth_none_socket_timeout/Dockerfile")
+                    .withFileFromClasspath("server.py", "app/server/server.py")
+                    .withFileFromClasspath("main.py", "app/server_auth_none_socket_timeout/main.py")
+                    .withFileFromClasspath("Dockerfile", "app/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final String  USERNAME                          = "username";
     private static final String  PASSWORD                          = "password";
-    private static final Pattern CUSTOM_NONE_CLASS_PACKAGE_PATTERN = Pattern.compile("(?im)sk\\.skerlik\\.jsch\\.NoneAuthMethod");
     private static       Session session;
 
     @BeforeAll
@@ -47,7 +40,8 @@ public class ServerNoneAuthTimeoutException extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Server will timeout on user auth none, jsch will continue in next auth methods")
+    @DisplayName("Server will timeout on user auth none." +
+            "Jsch SHOULD continue with next auth methods (because of AuthNone Wrapper)")
     void test_0() throws JSchException {
         session.connect(2000);
         ChannelShell shell = (ChannelShell) session.openChannel("shell");

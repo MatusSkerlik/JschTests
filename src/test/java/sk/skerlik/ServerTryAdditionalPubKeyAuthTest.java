@@ -2,11 +2,7 @@ package sk.skerlik;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
@@ -24,17 +20,17 @@ import static org.mockito.Mockito.spy;
  * The server allows public key authentication for a user if its internal counter (i) is divisible by 2 or 3.
  */
 @Testcontainers
-public class ServerPublicAuthTest extends AbstractJschDockerTest {
+public class ServerTryAdditionalPubKeyAuthTest extends AbstractJschDockerTest {
 
     private static final int PORT = getPort();
 
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/server.py")
-                    .withFileFromClasspath("main.py", "docker/server_public_auth_test/main.py")
-                    .withFileFromClasspath("key.rsa", "docker/server_public_auth_test/key.rsa")
-                    .withFileFromClasspath("Dockerfile", "docker/server_public_auth_test/Dockerfile")
+                    .withFileFromClasspath("server.py", "app/server/server.py")
+                    .withFileFromClasspath("main.py", "app/server_public_auth_test/main.py")
+                    .withFileFromClasspath("key.rsa", "app/server_public_auth_test/key.rsa")
+                    .withFileFromClasspath("Dockerfile", "app/server_public_auth_test/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final Pattern PRE_AUTH_PATTERN = Pattern.compile("rsa-sha2-(?:256|512) preauth success");
@@ -45,8 +41,8 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
     private static       Session session;
 
     static {
-        ClassLoader classLoader = ServerPublicAuthTest.class.getClassLoader();
-        File file = new File(classLoader.getResource("docker/server_public_auth_test/key.rsa").getFile());
+        ClassLoader classLoader = ServerTryAdditionalPubKeyAuthTest.class.getClassLoader();
+        File file = new File(classLoader.getResource("app/server_public_auth_test/key.rsa").getFile());
         try {
             PRIVATE_KEY = FileUtils.readFileToString(file, "UTF-8");
         } catch (IOException e) {
@@ -72,8 +68,21 @@ public class ServerPublicAuthTest extends AbstractJschDockerTest {
 
 
     @Test
-    @DisplayName("Test try_additional_pubkey_algorithms option for public-key auth")
+    @DisplayName("Test try_additional_pubkey_algorithms option for public-key auth.")
     void test_0() throws JSchException {
+        //     Attempt to authenticate using other signature algorithms supported by the same public key.
+        //
+        //    Some servers incorrectly respond with SSH_MSG_USERAUTH_PK_OK to the
+        //    intial auth query, but then fail the full SSH_MSG_USERAUTH_REQUEST for
+        //    RSA keys (which can support multiple signautre algorithms).
+        //
+        //    Allow the new behavior to potentially try other algorithms to be
+        //    disabled via a new config option `try_additional_pubkey_algorithms`.
+        //
+        //    Additionally, add a new config option `use_pubkey_auth_query` to allow
+        //    skipping auth queries and skip straight to attempting full
+        //    SSH_MSG_USERAUTH_REQUEST's.
+
         Session sessionSpy = spy(session);
         sessionSpy.connect();
 

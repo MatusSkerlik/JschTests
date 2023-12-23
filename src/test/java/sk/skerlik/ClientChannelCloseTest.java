@@ -4,11 +4,7 @@ import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
@@ -25,9 +21,9 @@ public class ClientChannelCloseTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/server.py")
-                    .withFileFromClasspath("main.py", "docker/client_channel_close_test/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/client_channel_close_test/Dockerfile")
+                    .withFileFromClasspath("server.py", "app/server/server.py")
+                    .withFileFromClasspath("main.py", "app/server_noop/main.py")
+                    .withFileFromClasspath("Dockerfile", "app/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final String USERNAME = "username";
@@ -51,7 +47,8 @@ public class ClientChannelCloseTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Jsch channel close by server")
+    @DisplayName("Closing channel immediately after its creating." +
+            "Worker thread SHOULD NOT exit if no channels are currently open.")
     void test_0() throws JSchException, InterruptedException {
         session.connect();
         ChannelShell shell = (ChannelShell) session.openChannel("shell");

@@ -3,11 +3,7 @@ package sk.skerlik;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
@@ -47,9 +43,9 @@ public class ServerInvalidCommandTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/server.py")
-                    .withFileFromClasspath("main.py", "docker/server_invalid_command_test/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/server_invalid_command_test/Dockerfile")
+                    .withFileFromClasspath("server.py", "app/server/server.py")
+                    .withFileFromClasspath("main.py", "app/server_invalid_command_test/main.py")
+                    .withFileFromClasspath("Dockerfile", "app/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final String  USERNAME    = "username";
@@ -70,7 +66,8 @@ public class ServerInvalidCommandTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Jsch session close after invalid message from server")
+    @DisplayName("Server will send invalid command type." +
+            "Jsch SHOULD disconnect.")
     void test_0() throws JSchException, InterruptedException {
         Session sessionSpy = spy(session);
 

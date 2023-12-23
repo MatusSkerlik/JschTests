@@ -2,11 +2,7 @@ package sk.skerlik;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
@@ -14,9 +10,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.regex.Pattern;
 
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @Testcontainers
 public class ClientSocketCloseTest extends AbstractJschDockerTest {
@@ -26,9 +20,9 @@ public class ClientSocketCloseTest extends AbstractJschDockerTest {
     @Container
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
-                    .withFileFromClasspath("server.py", "docker/server.py")
-                    .withFileFromClasspath("main.py", "docker/client_socket_close_test/main.py")
-                    .withFileFromClasspath("Dockerfile", "docker/client_socket_close_test/Dockerfile")
+                    .withFileFromClasspath("server.py", "app/server/server.py")
+                    .withFileFromClasspath("main.py", "app/server_noop/main.py")
+                    .withFileFromClasspath("Dockerfile", "app/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
     private static final String  USERNAME    = "username";
@@ -48,7 +42,8 @@ public class ClientSocketCloseTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("JSch will close session immediately after its creation, Socket closed exception simulation")
+    @DisplayName("Closing session immediately after its creation." +
+            "Worker thread should write log message about leaving its loop and closing socket.")
     void test_0() throws JSchException, InterruptedException {
         Session sessionSpy = spy(session);
 

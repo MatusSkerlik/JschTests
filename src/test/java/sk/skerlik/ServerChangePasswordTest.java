@@ -1,8 +1,10 @@
 package sk.skerlik;
 
-import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UIKeyboardInteractive;
+import com.jcraft.jsch.UserInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
@@ -29,8 +31,9 @@ import static org.mockito.Mockito.verify;
  * If the test method fails, it means that the client has not properly handled the SSH_MSG_CHANNEL_CLOSE message and the channel remains open, or that the client has not properly disconnected from the server after detecting the closed channel.
  * </p>
  */
+@Slf4j
 @Testcontainers
-public class ServerChannelCloseTest extends AbstractJschDockerTest {
+public class ServerChangePasswordTest extends AbstractJschDockerTest {
 
     private static final int PORT = getPort();
 
@@ -38,7 +41,7 @@ public class ServerChannelCloseTest extends AbstractJschDockerTest {
     public static final GenericContainer<?> sshd = new GenericContainer<>(
             new ImageFromDockerfile()
                     .withFileFromClasspath("server.py", "app/server/server.py")
-                    .withFileFromClasspath("main.py", "app/server_channel_close_test/main.py")
+                    .withFileFromClasspath("main.py", "app/server_change_password_test/main.py")
                     .withFileFromClasspath("Dockerfile", "app/Dockerfile")
     ).withExposedPorts(PORT).withEnv("PORT", Integer.toString(PORT));
 
@@ -51,6 +54,9 @@ public class ServerChannelCloseTest extends AbstractJschDockerTest {
         session = jSch.getSession(USERNAME, sshd.getHost(), sshd.getFirstMappedPort());
         session.setPassword(PASSWORD);
         session.setConfig("StrictHostKeyChecking", "no");
+
+        // Set keyboard interactive prompt handler
+        session.setUserInfo(new UserInfoKeyboardInteractiveHandler());
     }
 
     @AfterAll
@@ -59,20 +65,66 @@ public class ServerChannelCloseTest extends AbstractJschDockerTest {
     }
 
     @Test
-    @DisplayName("Server will close channel after it was opened. " +
-            "Jsch SHOULD disconnect.")
+    @DisplayName("Server will send prompt, which are asking to change password." +
+            "Exception SHOULD be thrown from implemented UserAuth")
     void test_0() throws JSchException, InterruptedException {
         Session sessionSpy = spy(session);
 
-        sessionSpy.connect();
-        ChannelShell shell = (ChannelShell) sessionSpy.openChannel("shell");
-        shell.connect();
-
+        Assertions.assertThrows(IllegalStateException.class, sessionSpy::connect, "Server should prompt for old password, which should result in throw in keyboard-interactive user info handler.");
         Thread.sleep(1000);
 
-        Assertions.assertFalse(shell.isConnected());
-        Assertions.assertTrue(shell.isClosed());
         // verify that disconnect was also called
         verify(sessionSpy).disconnect();
+    }
+
+    static class UserInfoKeyboardInteractiveHandler implements UserInfo, UIKeyboardInteractive {
+
+        @Override
+        public String[] promptKeyboardInteractive(String destination, String name, String instruction, String[] prompts, boolean[] echo) {
+            for (String prompt: prompts){
+                log.info("Received PROMPT from server: '{}'", prompt);
+            }
+
+            for (String prompt: prompts) {
+                if (prompt.contains("old password") || prompt.contains("new password")) {
+                    throw new IllegalStateException("Received CHANGE PASSWORD REQUEST from server.");
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        public String getPassphrase() {
+            return null;
+        }
+
+        @Override
+        public String getPassword() {
+            return null;
+        }
+
+        @Override
+        public boolean promptPassword(String message) {
+            log.info("Recieved PROMPT PASSWORD from server: '{}'", message);
+            return false;
+        }
+
+        @Override
+        public boolean promptPassphrase(String message) {
+            log.info("Recieved PROMPT PASSPHRASE from server: '{}'", message);
+            return false;
+        }
+
+        @Override
+        public boolean promptYesNo(String message) {
+            log.info("Recieved PROMPT YES/NO from server: '{}'", message);
+            return false;
+        }
+
+        @Override
+        public void showMessage(String message) {
+            log.info("Recieved MESSAGE from server: '{}'", message);
+        }
     }
 }
