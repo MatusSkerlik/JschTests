@@ -4,6 +4,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
@@ -11,6 +12,8 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -67,10 +70,16 @@ public class ServerChangePasswordTest extends AbstractJschDockerTest {
     @Test
     @DisplayName("Server will send prompt, which are asking to change password." +
             "Exception SHOULD be thrown from implemented UserAuth")
-    void test_0() throws JSchException, InterruptedException {
+    void test_0() throws InterruptedException {
         Session sessionSpy = spy(session);
 
-        Assertions.assertThrows(IllegalStateException.class, sessionSpy::connect, "Server should prompt for old password, which should result in throw in keyboard-interactive user info handler.");
+        try {
+            sessionSpy.connect();
+            fail();
+        } catch (JSchException e) {
+            // assertInstanceOf(PasswordRequestChangeException.class, e.getCause());
+            assertInstanceOf(PasswordRequestChangeException.class, e);
+        }
         Thread.sleep(1000);
 
         // verify that disconnect was also called
@@ -79,6 +88,7 @@ public class ServerChangePasswordTest extends AbstractJschDockerTest {
 
     static class UserInfoKeyboardInteractiveHandler implements UserInfo, UIKeyboardInteractive {
 
+        @SneakyThrows
         @Override
         public String[] promptKeyboardInteractive(String destination, String name, String instruction, String[] prompts, boolean[] echo) {
             for (String prompt: prompts){
@@ -87,7 +97,7 @@ public class ServerChangePasswordTest extends AbstractJschDockerTest {
 
             for (String prompt: prompts) {
                 if (prompt.contains("old password") || prompt.contains("new password")) {
-                    throw new IllegalStateException("Received CHANGE PASSWORD REQUEST from server.");
+                    throw new PasswordRequestChangeException("Received CHANGE PASSWORD REQUEST from server.");
                 }
             }
 
@@ -126,5 +136,13 @@ public class ServerChangePasswordTest extends AbstractJschDockerTest {
         public void showMessage(String message) {
             log.info("Recieved MESSAGE from server: '{}'", message);
         }
+    }
+
+    static class PasswordRequestChangeException extends JSchException{
+
+        public PasswordRequestChangeException(String s) {
+            super(s);
+        }
+
     }
 }
